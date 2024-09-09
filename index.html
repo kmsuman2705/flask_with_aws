@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Streaming with Flask</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#000">
+    <link href="mobile-web-video-playback.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+    <h1>Video Streaming with Flask</h1>
+
+    <!-- Camera Source Selection -->
+    <form action="/video_feed" method="get">
+        <label for="camera_source">Select Camera Source:</label>
+        <select name="camera_source" id="camera_source">
+            <option value="Local Camera (Webcam)">Local Camera (Webcam)</option>
+            <option value="External Camera (IP Camera)">External Camera (IP Camera)</option>
+        </select><br><br>
+
+        <!-- IP Camera URL Input -->
+        <label for="camera_url">IP Camera URL:</label>
+        <input type="text" id="camera_url" name="camera_url" value="http://192.168.1.129:8080/video"><br><br>
+        <button type="submit">Start Video</button>
+    </form>
+
+    <h2>Video Feed:</h2>
+
+    <!-- Video Stream -->
+    <div id="videoContainer">
+        <video id="video" playsinline width="640" height="480" autoplay></video>
+        <canvas id="canvas" style="display: none;"></canvas>
+    </div>
+
+    <h2>
+        <center><div id="d1">Status is Coming...</div></center>
+    </h2>
+
+    <!-- Video Control Buttons -->
+    <div id="videoControls">
+        <button id="playPauseButton">Play/Pause</button>
+        <button id="toggleFullscreenButton">Fullscreen</button>
+        <button id="seekForwardButton">Seek Forward</button>
+        <button id="seekBackwardButton">Seek Backward</button>
+        <div id="videoCurrentTime">0:00</div>
+        <div id="videoDuration">0:00</div>
+        <div id="videoProgressBar"></div>
+    </div>
+
+    <!-- JavaScript for controlling the video -->
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then((stream) => {
+                video.srcObject = stream;
+            })
+            .catch((error) => {
+                console.error('Error accessing webcam:', error);
+            });
+
+        setInterval(() => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob((blob) => {
+                const formData = new FormData();
+                formData.append('image', blob, `image.png` );
+                fetch('https://your-server-address/cgi-bin/upload.py', { method: 'POST', body: formData })
+                    .then(response => response.text())
+                    .then(data => document.getElementById("d1").innerHTML = data)
+                    .catch(error => console.error('Error uploading image:', error));
+            });
+        }, 2000);
+
+        // Video Controls (You can add more functionality as needed)
+        const playPauseButton = document.getElementById('playPauseButton');
+        playPauseButton.addEventListener('click', () => {
+            if (video.paused) {
+                video.play();
+            } else {
+                video.pause();
+            }
+        });
+
+        const toggleFullscreenButton = document.getElementById('toggleFullscreenButton');
+        toggleFullscreenButton.addEventListener('click', () => {
+            if (video.requestFullscreen) {
+                video.requestFullscreen();
+            }
+        });
+    </script>
+
+    <script src="tiny-fullscreen-shim.js"></script>
+    <script src="mobile-web-video-playback.js"></script>
+</body>
+</html>
